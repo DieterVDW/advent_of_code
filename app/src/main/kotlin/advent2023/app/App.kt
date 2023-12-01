@@ -11,6 +11,19 @@ fun main() {
     var ret = calc(input)
     require(ret == 142) { "Expected 142, got ${ret}" }
 
+    input = "two1nine\n" +
+            "eightwothree\n" +
+            "abcone2threexyz\n" +
+            "xtwone3four\n" +
+            "4nineeightseven2\n" +
+            "zoneight234\n" +
+            "7pqrstsixteen"
+    ret = calc(input)
+    require(ret == 281) { "Expected 281, got ${ret}" }
+
+    ret = calc("eighthree")
+    require(ret == 83) { "Expected 83, got ${ret}" }
+
     input = Thread.currentThread().contextClassLoader.getResourceAsStream("input.txt").readAllBytes().decodeToString()
     val output = calc(input)
     println(output)
@@ -19,6 +32,15 @@ fun main() {
 private fun calc(input: String): Int {
     println()
     val replacements = mapOf(
+            "one" to 1,
+            "two" to 2,
+            "three" to 3,
+            "four" to 4,
+            "five" to 5,
+            "six" to 6,
+            "seven" to 7,
+            "eight" to 8,
+            "nine" to 9,
             "1" to 1,
             "2" to 2,
             "3" to 3,
