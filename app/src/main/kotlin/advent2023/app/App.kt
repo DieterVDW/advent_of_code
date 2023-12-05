@@ -15,7 +15,7 @@ fun main() {
             "...\$.*....\n" +
             ".664.598.."
     var ret = calc(input)
-    require(ret == 4361) { "Expected 4361, got ${ret}" }
+    require(ret == 467835) { "Expected 467835, got ${ret}" }
 
     input = Thread.currentThread().contextClassLoader.getResourceAsStream("input.txt").readAllBytes().decodeToString()
     val output = calc(input)
@@ -28,7 +28,7 @@ open class Coord(
 )
 
 class Symbol(
-        row: Int, column: Int
+        row: Int, column: Int, val symbol: Char
 ) : Coord(row, column) {
     override fun toString(): String {
         return "$row/$column"
@@ -51,12 +51,13 @@ private fun calc(input: String): Int {
             .flatMapIndexed { row, line ->
                 parseNumbersAndSymbols(row, line)
             }
-    val symbols = coords.flatMap {
+    val gearSymbols = coords.flatMap {
         when (it) {
             is Symbol -> listOf(it)
             else -> listOf()
         }
-    }
+    }.filter { it.symbol == '*' }
+
     val numbers = coords.flatMap {
         when (it) {
             is Number -> listOf(it)
@@ -64,18 +65,21 @@ private fun calc(input: String): Int {
         }
     }
 
-    return numbers
-            .filter { hasAdjecentSymbol(it, symbols) }
-            .map { it.value }
-            .sum()
+    return gearSymbols
+            .map { getAdjecentNumbers(numbers, it) }
+            .map { it.map { n -> n.value } }
+            .filter { it.size == 2 }
+            .sumOf { it[0] * it[1] }
 }
 
-fun hasAdjecentSymbol(number: Number, symbols: List<Symbol>): Boolean {
-    val hasAdjecentSymbol = symbols.any {
-        it.row in number.row - 1..number.row + 1
-                && it.column in number.column - 1..(number.column + number.value.toString().length)
-    }
-    return hasAdjecentSymbol
+fun getAdjecentNumbers(numbers: List<Number>, symbol: Symbol): List<Number> {
+    val adjNumbers = numbers
+            .filter { it.row in symbol.row - 1..symbol.row + 1 }
+            .filter {
+                it.column in symbol.column - it.value.toString().length..symbol.column + 1
+            }
+    println("$symbol -> $adjNumbers")
+    return adjNumbers
 }
 
 fun parseNumbersAndSymbols(row: Int, line: String): List<Coord> {
@@ -83,7 +87,7 @@ fun parseNumbersAndSymbols(row: Int, line: String): List<Coord> {
         when (c) {
             '.' -> listOf(Coord(row, index))
             in '0'..'9' -> listOf(Number(row, index, c - '0'))
-            else -> listOf(Symbol(row, index))
+            else -> listOf(Symbol(row, index, c))
         }
     }.fold(mutableListOf<Coord>()) { list, coord ->
         if (coord is Number && list.size > 0 && list.last() is Number) {
