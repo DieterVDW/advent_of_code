@@ -3,58 +3,102 @@
  */
 package advent2023.app
 
+import java.lang.IllegalStateException
+
 fun main() {
-    var input = "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53\n" +
-            "Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19\n" +
-            "Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1\n" +
-            "Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83\n" +
-            "Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36\n" +
-            "Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"
+    var input = "seeds: 79 14 55 13\n" +
+            "\n" +
+            "seed-to-soil map:\n" +
+            "50 98 2\n" +
+            "52 50 48\n" +
+            "\n" +
+            "soil-to-fertilizer map:\n" +
+            "0 15 37\n" +
+            "37 52 2\n" +
+            "39 0 15\n" +
+            "\n" +
+            "fertilizer-to-water map:\n" +
+            "49 53 8\n" +
+            "0 11 42\n" +
+            "42 0 7\n" +
+            "57 7 4\n" +
+            "\n" +
+            "water-to-light map:\n" +
+            "88 18 7\n" +
+            "18 25 70\n" +
+            "\n" +
+            "light-to-temperature map:\n" +
+            "45 77 23\n" +
+            "81 45 19\n" +
+            "68 64 13\n" +
+            "\n" +
+            "temperature-to-humidity map:\n" +
+            "0 69 1\n" +
+            "1 0 69\n" +
+            "\n" +
+            "humidity-to-location map:\n" +
+            "60 56 37\n" +
+            "56 93 4"
     var ret = calc(input)
-    require(ret == 30) { "Expected 30, got ${ret}" }
+    require(ret == 35L) { "Expected 35, got ${ret}" }
 
     input = Thread.currentThread().contextClassLoader.getResourceAsStream("input.txt").readAllBytes().decodeToString()
     val output = calc(input)
     println(output)
 }
 
-data class Card(
-        var num: Int,
-        var winningNumbers: List<Int>,
-        var ownNumbers: List<Int>
+data class CategoryMap(
+        val from: String,
+        val to: String,
+        val mappings: MutableList<Mapping> = mutableListOf()
 )
 
+data class Mapping(
+        val destinationIndex: Long,
+        val sourceIndex: Long,
+        val num: Long
+)
 
-private fun calc(input: String): Int {
+private fun calc(input: String): Long {
     println()
 
-    val lines = input.lines().toList()
+    val seeds = input.lines().first().split(":")[1].trim().split(" ").map { it.toLong() }
 
-    val cards = lines
+    val maps = input.lines()
             .filter { it.isNotBlank() }
-            .map {
-                Card(
-                        it.split(":")[0].split(" +".toRegex())[1].toInt(),
-                        splitNumbers(it.split(":")[1].split("|")[0]),
-                        splitNumbers(it.split(":")[1].split("|")[1]),
-                )
-            }
-    val numCards = Array(cards.size) { 1 }
-    cards
-            .map { it.numMatching() }
-            .forEachIndexed { index, numMatches ->
-                val howFar = numMatches
-                val howMany = numCards[index]
-                for (offset in 1..howFar) {
-                    numCards[index + offset] += howMany
+            .drop(1)
+            .fold(mutableListOf<CategoryMap>()) { maps, line ->
+                if (line.matches("[0-9]+ [0-9]+ [0-9]+".toRegex())) {
+                    var values = line.split(" ").map { it.toLong() }
+                    maps.last().mappings.add(Mapping(values[0], values[1], values[2]))
+                } else {
+                    val matcher = "([a-z]+)-to-([a-z]+) map:".toRegex().matchEntire(line)
+                    require(matcher != null) { "Can't match line: $line" }
+                    maps.add(CategoryMap(matcher.groupValues[1], matcher.groupValues[2]))
                 }
+                maps
             }
-    return numCards.sum()
+
+    return seeds.map { seed ->
+        println()
+        seed to maps.fold(seed) { input, categoryMap ->
+            val new = applyMap(input, categoryMap)
+            println("${categoryMap.from} -> ${categoryMap.to}: $input -> $new")
+            new
+        }
+    }.map { pair ->
+        println(pair)
+        pair
+    }.minOf { it.second }
 }
 
-fun splitNumbers(numString: String): List<Int> =
-        numString.trim().split(" +".toRegex())
-                .filter { it.isNotBlank() }
-                .map { it.toInt() }
+fun applyMap(input: Long, categoryMap: CategoryMap): Long {
+    val matchingMappings = categoryMap.mappings
+            .filter { input in it.sourceIndex..it.sourceIndex + (it.num - 1) }
+    return when (matchingMappings.size) {
+        0 -> input
+        1 -> (input - matchingMappings[0].sourceIndex) + matchingMappings[0].destinationIndex
+        else -> throw IllegalStateException("Matching mappings: $matchingMappings")
+    }
+}
 
-fun Card.numMatching(): Int = winningNumbers.intersect(ownNumbers).size
