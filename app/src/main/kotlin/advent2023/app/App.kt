@@ -11,7 +11,7 @@ fun main() {
             "Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36\n" +
             "Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"
     var ret = calc(input)
-    require(ret == 13) { "Expected 13, got ${ret}" }
+    require(ret == 30) { "Expected 30, got ${ret}" }
 
     input = Thread.currentThread().contextClassLoader.getResourceAsStream("input.txt").readAllBytes().decodeToString()
     val output = calc(input)
@@ -28,18 +28,28 @@ data class Card(
 private fun calc(input: String): Int {
     println()
 
-    return input.lines()
+    val lines = input.lines().toList()
+
+    val cards = lines
             .filter { it.isNotBlank() }
             .map {
-                println(it)
                 Card(
                         it.split(":")[0].split(" +".toRegex())[1].toInt(),
                         splitNumbers(it.split(":")[1].split("|")[0]),
                         splitNumbers(it.split(":")[1].split("|")[1]),
                 )
             }
-            .map { it.score() }
-            .sum()
+    val numCards = Array(cards.size) { 1 }
+    cards
+            .map { it.numMatching() }
+            .forEachIndexed { index, numMatches ->
+                val howFar = numMatches
+                val howMany = numCards[index]
+                for (offset in 1..howFar) {
+                    numCards[index + offset] += howMany
+                }
+            }
+    return numCards.sum()
 }
 
 fun splitNumbers(numString: String): List<Int> =
@@ -47,13 +57,4 @@ fun splitNumbers(numString: String): List<Int> =
                 .filter { it.isNotBlank() }
                 .map { it.toInt() }
 
-fun Card.score(): Int {
-    val num = winningNumbers.intersect(ownNumbers).size
-    val score = when (num) {
-        0 -> 0
-        1 -> 1
-        else -> Math.pow(2.0, num - 1.0).toInt()
-    }
-    println("$winningNumbers $ownNumbers $num $score")
-    return score
-}
+fun Card.numMatching(): Int = winningNumbers.intersect(ownNumbers).size
