@@ -17,4 +17,4 @@ plugins {
 }
 
 rootProject.name = "advent2023"
-include("app")
+include("adventOfCode")
