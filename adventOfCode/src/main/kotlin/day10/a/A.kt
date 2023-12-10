@@ -17,7 +17,7 @@ fun main() {
     ret = calc(input)
     require(ret == 8) { "Expected 8, got ${ret}" }
 
-    input = Thread.currentThread().contextClassLoader.getResourceAsStream("day10.txt").readAllBytes().decodeToString()
+    input = Thread.currentThread().contextClassLoader.getResourceAsStream("day10.txt")!!.readAllBytes().decodeToString()
     val output = calc(input)
     println(output)
 }
@@ -58,8 +58,6 @@ enum class Directions {
 }
 
 fun getNextSteps(maze: List<String>, visited: MutableSet<Position>, pos: Position): List<Position> {
-
-    val currentSymbol = maze[pos.row][pos.column]
 
     val nextSteps = listOf(
             // Try all directions
